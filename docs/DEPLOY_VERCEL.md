@@ -1,10 +1,20 @@
 # Despliegue en Vercel — GAGO CAMPAIGN OS
 
-## Estado de verificación
+## Equipo Vercel
 
-Esta documentación describe la configuración prevista. **No se ha verificado el despliegue automático** porque no se dispone de credenciales de Vercel, GitHub ni PostgreSQL en este entorno.
+**Nombre del equipo:** `manuelgagoeduextrem-7548`
 
-Los comandos y archivos de configuración están preparados para su ejecución manual.
+## Estado de preparación
+
+✅ **Frontend:** Compilado y verificado (Vite + React + TypeScript)
+✅ **API Go:** Estructura base preparada en `/api/index.go`
+✅ **Migraciones SQL:** Completas en `/migrations/001_initial_schema.sql`
+✅ **Configuración Vercel:** `vercel.json` configurado
+✅ **Documentación:** Completa
+
+⏳ **Pendiente:** Ejecutar despliegue real con credenciales de Vercel
+
+## Despliegue rápido (5 pasos)
 
 ## Configuración de Vercel
 
@@ -104,3 +114,140 @@ go run cmd/create-admin/main.go --email admin@empresa.com --name "Admin" --org "
 - **Production**: solo desde la rama principal. Base de datos de producción.
 
 Configurar `DATABASE_URL` diferente para cada entorno en Vercel.
+
+---
+
+## Despliegue paso a paso (equipo manuelgagoeduextrem-7548)
+
+### 1. Instalar Vercel CLI
+
+```bash
+npm install -g vercel
+```
+
+### 2. Login en Vercel
+
+```bash
+vercel login
+```
+
+### 3. Desplegar preview (primera vez)
+
+```bash
+vercel --team manuelgagoeduextrem-7548
+```
+
+Esto creará un proyecto en Vercel y le dará una URL temporal.
+
+### 4. Configurar variables de entorno
+
+```bash
+# Ir al panel de Vercel → su proyecto → Settings → Environment Variables
+# O usar CLI:
+
+vercel env add APP_ORIGIN production
+# Introduzca: https://su-proyecto.vercel.app
+
+vercel env add APP_ENV production
+# Introduzca: production
+
+vercel env add SESSION_TTL_HOURS production
+# Introduzca: 24
+
+vercel env add DATABASE_URL production
+# Introduzca la cadena de conexión de Neon
+```
+
+### 5. Crear base de datos Neon
+
+Ver [docs/CONFIG_NEON.md](CONFIG_NEON.md) para instrucciones detalladas.
+
+Resumen rápido:
+1. Crear cuenta en https://neon.tech
+2. Crear proyecto `gago-campaign-os`
+3. Copiar cadena de conexión
+4. Aplicar migraciones: `psql $DATABASE_URL < migrations/001_initial_schema.sql`
+
+### 6. Desplegar a producción
+
+```bash
+vercel --prod --team manuelgagoeduextrem-7548
+```
+
+### 7. Crear primer administrador
+
+```bash
+go run cmd/create-admin/main.go \
+  --email admin@su-dominio.com \
+  --name "Prof. Manuel GAGO FERNÁNDEZ" \
+  --org "GAGO Campaign OS"
+```
+
+### 8. Verificar despliegue
+
+```bash
+# Health check
+curl https://su-proyecto.vercel.app/api/health
+# Esperado: {"status":"ok","timestamp":"...","version":"1.0.0"}
+
+# Frontend
+open https://su-proyecto.vercel.app
+# Debe mostrar la pantalla de login
+```
+
+## Estructura de archivos para Vercel
+
+```
+/
+├── api/
+│   └── index.go              → Función serverless Go (GET /api/*)
+├── dist/                     → Frontend compilado (output de Vite)
+├── migrations/
+│   └── 001_initial_schema.sql
+├── vercel.json               → Configuración de Vercel
+├── package.json              → Dependencias frontend
+└── ...
+```
+
+## Variables de entorno requeridas
+
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `DATABASE_URL` | Cadena de conexión PostgreSQL | `postgresql://user:pass@host/db?sslmode=require` |
+| `APP_ORIGIN` | URL pública (para CORS) | `https://gago-campaign-os.vercel.app` |
+| `APP_ENV` | Entorno | `production` |
+| `SESSION_TTL_HOURS` | Duración sesión | `24` |
+
+## Troubleshooting
+
+### Error: "Function failed to compile"
+
+- Verifique que `api/index.go` tiene `package handler`
+- Verifique que `vercel.json` tiene la configuración correcta
+
+### Error: "Database connection failed"
+
+- Verifique que `DATABASE_URL` está configurada en Vercel
+- Verifique que las migraciones se aplicaron correctamente
+- Verifique que Neon permite conexiones desde Vercel (IPs)
+
+### Error: "CORS blocked"
+
+- Verifique que `APP_ORIGIN` coincide con la URL de Vercel
+- Verifique que la función Go establece los headers CORS
+
+## Comandos útiles
+
+```bash
+# Ver logs en tiempo real
+vercel logs --team manuelgagoeduextrem-7548
+
+# Listar despliegues
+vercel ls --team manuelgagoeduextrem-7548
+
+# Eliminar despliegue
+vercel rm <deployment-url> --team manuelgagoeduextrem-7548
+
+# Promover preview a producción
+vercel promote <deployment-url> --team manuelgagoeduextrem-7548
+```
